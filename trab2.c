@@ -123,3 +123,51 @@ void imprimirLista(Go* lista) {
     printf("\n");
 }
 
+
+int main() {
+    char linha[MAX];
+
+    while (fgets(linha, MAX, stdin)) {
+        No* LE = NULL;
+        No* LI = NULL;
+        float reais[1000];
+        int qtdReais = 0;
+        int lendo = 0; 
+        char* token = strtok(linha, " \n");
+
+        while (token != NULL) {
+            if (strcmp(token, "LE") == 0) {
+                lendo = 1;
+            } else if (strcmp(token, "LI") == 0) {
+                lendo = 2;
+            } else {
+                float valor;
+                sscanf(token, "%f", &valor);
+
+                if (strchr(token, '.')) {
+                    reais[qtdReais++] = valor;
+                    lendo = 3;
+                } else {
+                    if (lendo == 1) {
+                        LE = inserirFinal(LE, (int)valor);
+                    } else if (lendo == 2) {
+                        LI = inserirFinal(LI, (int)valor);
+                    }
+                }
+            }
+
+            token = strtok(NULL, " \n");
+        }
+
+        LE = ordenar(LE, 1);   
+        LI = ordenar(LI, 0);   
+
+        associarReais(LE, reais, qtdReais);
+        associarReais(LI, reais, qtdReais);
+
+        imprimirLista(LE);
+        imprimirLista(LI);
+    }
+
+    return 0;
+}
