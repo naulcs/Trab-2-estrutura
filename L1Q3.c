@@ -12,51 +12,67 @@ typedef struct Real {
 
 typedef struct Go {
     int chave;
-    Real* listaReais; // Lista de reais associada
+    Real* listaReais; 
     struct Go* prox;
+    struct Go* ant;  
 } Go;
 
 Go* criarGo(int valor) {
-    Go* new = (Go*)malloc(sizeof(Go));
-    new->chave = valor;
-    new->listaReais = NULL;
-    new->prox = NULL;
-    return new;
+    Go* novo = (Go*)malloc(sizeof(Go));
+    novo->chave = valor;
+    novo->listaReais = NULL;
+    novo->prox = NULL;
+    novo->ant = NULL;
+    return novo;
 }
 
 Go* inserirFinal(Go* inicio, int valor) {
-    Go* new = criarGo(valor);
+    Go* novo = criarGo(valor);
     if (inicio == NULL) {
-        return new;
+        return novo;
     } else {
         Go* atual = inicio;
         while (atual->prox != NULL) {
             atual = atual->prox;
         }
-        atual->prox = new;
+        atual->prox = novo;
+        novo->ant = atual; 
         return inicio;
     }
 }
 
-Real* criarReal(float valor) {
-    Real* new = (Real*)malloc(sizeof(Real));
-    new->valor = valor;
-    new->prox = NULL;
-    return new;
-}
+void inserirRealOrdenadoDecrescente(Go* no, float valor) {
+    Real* novo = (Real*)malloc(sizeof(Real));
+    novo->valor = valor;
 
-void inserirReal(Go* Go, float valor) {
-    Real* new = criarReal(valor);
-    if (Go->listaReais == NULL) {
-        new->prox = new;
-        Go->listaReais = new;
-    } else {
-        Real* atual = Go->listaReais;
-        while (atual->prox != Go->listaReais) {
-            atual = atual->prox;
+    if (no->listaReais == NULL) {
+        novo->prox = novo;
+        no->listaReais = novo;
+        return;
+    }
+
+    Real* atual = no->listaReais;
+    Real* ant = NULL;
+
+    do {
+        if (valor > atual->valor) {
+            break;
         }
-        atual->prox = new;
-        new->prox = Go->listaReais;
+        ant = atual;
+        atual = atual->prox;
+    } while (atual != no->listaReais);
+
+    if (ant == NULL) {
+      Real* ultimo = no->listaReais;
+        while (ultimo->prox != no->listaReais)
+            ultimo = ultimo->prox;
+
+        novo->prox = no->listaReais;
+        ultimo->prox = novo;
+        no->listaReais = novo;     
+    } else {
+        ant->prox = novo;
+        novo->prox = atual;
     }
 }
 
@@ -73,10 +89,13 @@ Go* ordenar(Go* inicio, int crescente) {
             if (precisaTrocar) {
                 int temp = atual->chave;
                 Real* tempLista = atual->listaReais;
+
                 atual->chave = atual->prox->chave;
                 atual->listaReais = atual->prox->listaReais;
+
                 atual->prox->chave = temp;
                 atual->prox->listaReais = tempLista;
+
                 trocou = 1;
             }
             atual = atual->prox;
@@ -91,45 +110,53 @@ int pertence(int inteiro, float real) {
 }
 
 void associarReais(Go* lista, float* reais, int qtd) {
-    while (lista != NULL) {
-        for (int i = 0; i < qtd; i++) {
-            if (pertence(lista->chave, reais[i])) {
-                inserirReal(lista, reais[i]);
+    for (int i = 0; i < qtd; i++) {
+        Go* atual = lista;
+        while (atual != NULL) {
+            if (pertence(atual->chave, reais[i])) {
+                inserirRealOrdenadoDecrescente(atual, reais[i]);
+                break;        
             }
+            atual = atual->prox;
         }
-        lista = lista->prox;
     }
 }
 
 void imprimirLista(Go* lista) {
-    while (lista != NULL) {
-        printf("[%d(", lista->chave);
-        if (lista->listaReais != NULL) {
-            Real* inicio = lista->listaReais;
-            Real* atual = inicio;
+    printf("[");
+    Go* atual = lista;
+    while (atual != NULL) {
+        printf("%d(", atual->chave);
+        if (atual->listaReais != NULL) {
+            Real* inicio = atual->listaReais;
+            Real* r = inicio;
             do {
-                printf("%.2f", atual->valor);
-                atual = atual->prox;
-                if (atual != inicio) {
-                    printf("->");
-                }
-            } while (atual != inicio);
+                printf("%.2f", r->valor);
+                r = r->prox;
+                if (r != inicio) printf(" - >");
+            } while (r != inicio);
         }
-        printf(")]");
-        if (lista->prox != NULL)
-            printf("->");
-        lista = lista->prox;
+        printf(")");
+        if (atual->prox != NULL) printf(" - > ");
+        atual = atual->prox;
     }
-    printf("\n");
+    printf("]\n");
 }
 
-
 int main() {
+    freopen("L1Q3.out", "w", stdout);
+
+    FILE *arquivo_in = fopen("L1Q3.in", "r");
+
+    if (arquivo_in == NULL) {
+        perror("Erro ao abrir o arquivo L1Q3.in");
+        return 1;
+    }
+
     char linha[MAX];
 
-    while (fgets(linha, MAX, stdin)) {
-        No* LE = NULL;
-        No* LI = NULL;
+    while (fgets(linha, MAX, arquivo_in)) {
+        Go* LE = NULL;
         float reais[1000];
         int qtdReais = 0;
         int lendo = 0; 
@@ -146,28 +173,22 @@ int main() {
 
                 if (strchr(token, '.')) {
                     reais[qtdReais++] = valor;
-                    lendo = 3;
                 } else {
                     if (lendo == 1) {
                         LE = inserirFinal(LE, (int)valor);
-                    } else if (lendo == 2) {
-                        LI = inserirFinal(LI, (int)valor);
                     }
                 }
             }
-
             token = strtok(NULL, " \n");
         }
 
-        LE = ordenar(LE, 1);   
-        LI = ordenar(LI, 0);   
-
+        LE = ordenar(LE, 1);  
         associarReais(LE, reais, qtdReais);
-        associarReais(LI, reais, qtdReais);
 
         imprimirLista(LE);
-        imprimirLista(LI);
     }
+
+    fclose(arquivo_in);
 
     return 0;
 }
